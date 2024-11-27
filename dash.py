@@ -48,7 +48,7 @@ def local_image_to_base64(image_path):
     return base64_image
 
 # Spécifiez le chemin de l'image
-image_path = "C:/Users/GENERAL STORES/Documents/GitHub/Dash/back.jpg"
+image_path = "Data/back.jpg"
 base64_image = local_image_to_base64(image_path)
 
 # Intégrer l'image dans le CSS
