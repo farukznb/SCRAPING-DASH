@@ -3,12 +3,14 @@ import pandas as pd
 from requests import get
 from bs4 import BeautifulSoup as bs
 import base64
+import time  # Import time module for tracking duration
 
 # Fonction de scraping
 def scrape_multiple_pages(base_url, last_page_index):
     all_data = []
+    start_time = time.time()  # Start timing
     for page_index in range(1, last_page_index + 1):
-        print(f"Scraping page {page_index}...")
+        st.write(f"Scraping page {page_index}...")  # Display current page being scraped
         url = f'{base_url}&nb={page_index}'
         page = get(url)
         ps = bs(page.text, 'html.parser')
@@ -29,19 +31,25 @@ def scrape_multiple_pages(base_url, last_page_index):
                 image_link = "https://dakarvente.com/" + image
                 
                 dic = {'Brand': brand, 'Price': price, 'Address': address_, 'Image link': image_link}
-                all_data.append(dic)
-            except Exception as e:
-                print(f"Error scraping a container on page {page_index}: {e}")
-                continue
+                all_data.append(dic)  # Append each dictionary to the list
+                
+            except Exception:
+                continue  # Ignore errors and continue scraping
+        
+        # Display the number of pages scraped so far
+        st.write(f"Pages already scraped: {page_index}/{last_page_index}")
     
-    df = pd.DataFrame(all_data)
+    end_time = time.time()  # End timing
+    total_time = end_time - start_time  # Calculate total time taken
+    st.write(f"Total time taken for scraping: {total_time:.2f} seconds")  # Display total time taken
+    
+    df = pd.DataFrame(all_data)  # Convert the list of dictionaries to a DataFrame
     return df
 
 # Streamlit app
 st.title("Dashboard Basique avec Streamlit")
 
 # Appliquer du CSS pour personnaliser le design
-# Fonction pour intégrer une image locale dans le style CSS
 def local_image_to_base64(image_path):
     with open(image_path, "rb") as image_file:
         base64_image = base64.b64encode(image_file.read()).decode()
@@ -66,7 +74,7 @@ st.markdown(
 )
 
 # Sidebar for user input features
-st.sidebar.header("User Input Features")
+st.sidebar.header("User    Input Features")
 
 # Example base URLs for scraping
 example_sites = {
@@ -117,3 +125,34 @@ elif selected_option == "Scrape Data Using BeautifulSoup":
                            data=csv,
                            file_name='data.csv',
                            mime='text/csv')
+# Logic for downloading pre-existing CSV files
+elif selected_option == "Download Scraped Data":
+    st.subheader("Download Scraped Data")
+    
+    # Load the CSV files
+    try:
+        vehicule_location = pd.read_csv('Data/location_nettoye.csv')
+        vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
+        vente_telephone_nettoye = pd.read_csv('Data/vente_telephone_nettoye.csv')
+
+        # Display the data before download options
+        st.write("Data from location:")
+        st.dataframe(vehicule_location)
+        st.write("Data from vehicules:")
+        st.dataframe(vehicules_nettoye)
+        st.write("Data from Telephones:")
+        st.dataframe(vente_telephone_nettoye)
+
+        # Create download links for each file
+        def create_download_link(df, filename):
+            csv = df.to_csv(index=False)
+            st.download_button(label=f"Download {filename }",
+                               data=csv,
+                               file_name=filename,
+                               mime='text/csv')
+
+        create_download_link(vehicule_location, 'Vehicules rent datas')
+        create_download_link(vehicules_nettoye, 'Vehicules datas')
+        create_download_link(vente_telephone_nettoye, 'Telephone datas')
+    except FileNotFoundError as e:
+        st.error(f"Error: {e}. Please ensure the CSV files exist in the correct directory.")
