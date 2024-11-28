@@ -4,6 +4,46 @@ from requests import get
 from bs4 import BeautifulSoup as bs
 import base64
 import time  # Import time module for tracking duration
+import matplotlib.pyplot as plt
+import seaborn as sns 
+
+def generate_plot(data):
+    # Create a scatter plot of price vs. address length
+    scatter = sns.scatterplot(x="Price", y="len(Address)", data=data)
+    scatter.set_title("Scatter plot of Price vs. Address Length")
+    scatter.set_xlabel("Price")
+    scatter.set_ylabel("Address Length")
+    st.pyplot(scatter.figure)
+
+    # Create a bar plot of the top 10 brands by price
+    top_brands = data.groupby("Brand")["Price"].mean().sort_values(ascending=False).head(10)
+    bar = sns.barplot(x=top_brands.index, y=top_brands.values, alpha=0.8)
+    bar.set_title("Top 10 Brands by Average Price")
+    bar.set_xlabel("Brand")
+    bar.set_ylabel("Average Price")
+    st.pyplot(bar.figure)
+
+
+
+    # Load the CSV files
+    try:
+        vehicule_location = pd.read_csv('Data/location_nettoye.csv')
+        vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
+        vente_telephone_nettoye = pd.read_csv('Data/vente_telephone_nettoye.csv')
+
+        # Display the data before plot options
+        st.write("Data from location:")
+        st.dataframe(vehicule_location)
+        st.write("Data from vehicules:")
+        st.dataframe(vehicules_nettoye)
+        st.write("Data from Telephones:")
+        st.dataframe(vente_telephone_nettoye)
+
+        # Generate plots
+        generate_plot(vehicules_nettoye)
+
+    except FileNotFoundError as e:
+        st.error(f"Error: {e}. Please ensure the CSV files exist in the correct directory.")
 
 # Fonction de scraping
 def scrape_multiple_pages(base_url, last_page_index):
@@ -156,3 +196,57 @@ elif selected_option == "Download Scraped Data":
         create_download_link(vente_telephone_nettoye, 'Telephone datas')
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure the CSV files exist in the correct directory.")
+
+elif selected_option == "Dashboard of the Data":
+    st.subheader("Dashboard of the Data")
+
+    # Load the CSV files
+try:
+    vehicule_location = pd.read_csv('Data/location_nettoye.csv')
+    vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
+    vente_telephone_nettoye = pd.read_csv('Data/vente_telephone_nettoye.csv')
+
+      # Generate plots
+
+    vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
+    vehicules_nettoye['Price'] = pd.to_numeric(vehicules_nettoye['Price'], errors='coerce')
+
+   
+
+    # 3. Marques les plus récurrentes
+    st.subheader("Répartition des Marques")
+    plt.figure(figsize=(10, 6))
+    brand_counts = vehicules_nettoye['Brand'].value_counts().head(10)  # Top 10 marques
+    brand_counts.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
+    plt.title('Répartition des Marques')
+    plt.ylabel('')
+    st.pyplot(plt)
+
+    st.title("Analyse des Variations de Prix par Marques")
+
+  
+    # Convert Price to numeric for each dataset
+    vehicule_location['Price'] = pd.to_numeric(vehicule_location['Price'], errors='coerce')
+    vente_telephone_nettoye['price'] = pd.to_numeric(vente_telephone_nettoye['price'], errors='coerce')
+
+    # 3. Marques les plus récurrentes for vehicule_location
+    st.subheader("Répartition des Marques - Location")
+    plt.figure(figsize=(10, 6))
+    brand_counts_location = vehicule_location['Brand'].value_counts().head(10)  # Top 10 marques
+    brand_counts_location.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
+    plt.title('Répartition des Marques - Location')
+    plt.ylabel('')
+    st.pyplot(plt)
+
+    # 3. Marques les plus récurrentes for vente_telephone_nettoye
+    st.subheader("Répartition des Marques - Téléphones")
+    plt.figure(figsize=(10, 6))
+    brand_counts_telephone = vente_telephone_nettoye['brand'].value_counts().head(10)  # Top 10 marques
+    brand_counts_telephone.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
+    plt.title('Répartition des Marques - Téléphones')
+    plt.ylabel('')
+    st.pyplot(plt)
+
+        
+except FileNotFoundError as e:
+     st.error(f"Erreur : {e}. Veuillez vérifier que le fichier existe dans le répertoire spécifié.")
