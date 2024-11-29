@@ -5,47 +5,90 @@ from bs4 import BeautifulSoup as bs
 import base64
 import time  # Import time module for tracking duration
 import matplotlib.pyplot as plt
-import seaborn as sns 
-
-def generate_plot(data):
-    # Create a scatter plot of price vs. address length
-    scatter = sns.scatterplot(x="Price", y="len(Address)", data=data)
-    scatter.set_title("Scatter plot of Price vs. Address Length")
-    scatter.set_xlabel("Price")
-    scatter.set_ylabel("Address Length")
-    st.pyplot(scatter.figure)
-
-    # Create a bar plot of the top 10 brands by price
-    top_brands = data.groupby("Brand")["Price"].mean().sort_values(ascending=False).head(10)
-    bar = sns.barplot(x=top_brands.index, y=top_brands.values, alpha=0.8)
-    bar.set_title("Top 10 Brands by Average Price")
-    bar.set_xlabel("Brand")
-    bar.set_ylabel("Average Price")
-    st.pyplot(bar.figure)
+import seaborn as sns
 
 
-
-    # Load the CSV files
+# Function to create download links
+def create_download_link(df, filename_csv, filename_excel):
+    # CSV download
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(label=f"Download {filename_csv} as CSV",
+                       data=csv,
+                       file_name=filename_csv,
+                       mime='text/csv')
+    
+    # Excel download
+    excel = df.to_excel(index=False, engine='openpyxl').encode('utf-8')
+    st.download_button(label=f"Download {filename_excel} as Excel",
+                       data=excel,
+                       file_name=filename_excel,
+                       mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+   
+# Function to encode the image as Base64
+def local_image_to_base64(image_path):
     try:
-        vehicule_location = pd.read_csv('Data/location_nettoye.csv')
-        vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
-        vente_telephone_nettoye = pd.read_csv('Data/vente_telephone_nettoye.csv')
+        with open(image_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode()
+        return base64_image
+    except FileNotFoundError:
+        st.error(f"Image file not found: {image_path}")
+        return ""
 
-        # Display the data before plot options
-        st.write("Data from location:")
-        st.dataframe(vehicule_location)
-        st.write("Data from vehicules:")
-        st.dataframe(vehicules_nettoye)
-        st.write("Data from Telephones:")
-        st.dataframe(vente_telephone_nettoye)
+# Apply the background image and themes using Base64
+image_path = "Data/gold.jpg"
+base64_image = local_image_to_base64(image_path)
 
-        # Generate plots
-        generate_plot(vehicules_nettoye)
+if base64_image:
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background: url('data:image/jpg;base64,{base64_image}') no-repeat center center fixed;
+            background-size: cover;
+            color: #FFFFFF;
+        }}
+        h1, h2, h3 {{
+            color: #ffffff;
+        }}
+        .stButton>button {{
+            background-color: #FF6347;
+            color: #FFFFFF;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+        }}
+        .stButton>button:hover {{
+            background-color: #555500;
+        }}
+        .stSlider>div {{
+            color: #FFFFFF;
+        }}
+        .stDataFrame {{
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #FFFFFF;
+        }}
+        .title-container {{
+            background-color:  #e0aa3e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }}
+        h1.title-text {{
+            color: #fffeef;
+            font-size: 48px;
+            font-family: 'Santa Catalina';
+            font-weight: bold;
+        }}
+        .stSidebar {{
+            background-color: #B7760B;  /* Set the sidebar background color */
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-    except FileNotFoundError as e:
-        st.error(f"Error: {e}. Please ensure the CSV files exist in the correct directory.")
-
-# Fonction de scraping
+# Scraping function
 def scrape_multiple_pages(base_url, last_page_index):
     all_data = []
     start_time = time.time()  # Start timing
@@ -85,168 +128,188 @@ def scrape_multiple_pages(base_url, last_page_index):
     
     df = pd.DataFrame(all_data)  # Convert the list of dictionaries to a DataFrame
     return df
-
+st.sidebar.image("Data/logo.png", use_container_width=True)
 # Streamlit app
-st.title("Dashboard Basique avec Streamlit")
-
-# Appliquer du CSS pour personnaliser le design
-def local_image_to_base64(image_path):
-    with open(image_path, "rb") as image_file:
-        base64_image = base64.b64encode(image_file.read()).decode()
-    return base64_image
-
-# Spécifiez le chemin de l'image
-image_path = "Data/back.jpg"
-base64_image = local_image_to_base64(image_path)
-
-# Intégrer l'image dans le CSS
-st.markdown(
-    f"""
-    <style>
-    body {{
-        background: url('data:image/jpg;base64,{base64_image}') no-repeat center center fixed;
-        background-size: cover;
-        font-family: Arial, sans-serif;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown('<div class="title-container"><h1 class="title-text">Dakar Vente Dashboard</h1></div>', unsafe_allow_html=True)
 
 # Sidebar for user input features
-st.sidebar.header("User    Input Features")
+st.sidebar.header("User Input Features")
 
 # Example base URLs for scraping
 example_sites = {
-    "Vehicules": "https://dakarvente.com/index.php?page=annonces_rubrique&url_categorie_2=vehicules&id=2&sort=",
-    "Motos": "https://dakarvente.com/index.php?page=annonces_categorie&id=3&sort=",
-    "Location": "https://dakarvente.com/index.php?page=annonces_categorie&id=8&sort=",
-    "Telephones": "https://dakarvente.com/index.php?page=annonces_categorie&id=32&sort="
+    "Vehicles": "https://dakarvente.com/index.php?page=annonces_rubrique&url_categorie_2=vehicules&id=2&sort=",
+    "Motorcycles": "https://dakarvente.com/index.php?page=annonces_categorie&id=3&sort=",
+    "Rentals": "https://dakarvente.com/index.php?page=annonces_categorie&id=8&sort=",
+    "Phones": "https://dakarvente.com/index.php?page=annonces_categorie&id=32&sort="
 }
 
 # Last page index for each site
 last_page_indices = {
-    "Vehicules": 129,
-    "Motos": 5,
-    "Location": 12,
-    "Telephones": 46 
+    "Vehicles": 129,
+    "Motorcycles": 5,
+    "Rentals": 12,
+    "Phones": 46 
 }
 
 # Options for the main actions
 options = ["Fill the Form", "Scrape Data Using BeautifulSoup", "Download Scraped Data", "Dashboard of the Data"]
-selected_option = st.sidebar.selectbox("Choisissez une option :", options)
+selected_option = st.sidebar.selectbox("Choose an option:", options)
 
 # Logic for the "Fill the Form" option
 if selected_option == "Fill the Form":
-    st.subheader("Formulaire KoboToolbox")
+    st.subheader("KoboToolbox Form")
     # Embed the KoboToolbox form using an iframe
     form_url = "https://ee.kobotoolbox.org/i/pMw5itNC"
     st.components.v1.iframe(src=form_url, width=800, height=600)
 
 # Logic for scraping data when the option is selected
 elif selected_option == "Scrape Data Using BeautifulSoup":
-    selected_site = st.sidebar.selectbox("Choisissez un site à scraper :", list(example_sites.keys()))
+    selected_site = st.sidebar.selectbox("Choose a site to scrape:", list(example_sites.keys()))
     base_url = example_sites[selected_site]
     last_page_index = last_page_indices[selected_site]
-    nombre_de_pages = st.sidebar.selectbox("Nombre de pages à scraper", options=range(1, last_page_index + 1), index=4)
+    number_of_pages = st.sidebar.selectbox("Number of pages to scrape", options=range(1, last_page_index + 1), index=4)
 
-    if st.button("Commencer le scraping"):
-        result = scrape_multiple_pages(base_url, nombre_de_pages)
-        st.subheader("Données Scrappées")
+    if st.button("Start scraping"):
+        result = scrape_multiple_pages(base_url, number_of_pages)
+        st.subheader("Scraped Data")
         st.write(result)
 
         # Optionally display statistics
-        st.subheader("Statistiques")
-        st.write("Nombre d'éléments scrappés :", len(result))
+        st.subheader("Statistics")
+        st.write("Number of items scraped:", len(result))
 
         # Download buttons
         csv = result.to_csv(index=False).encode('utf-8')
-        st.download_button(label="Télécharger en CSV",
+        st.download_button(label="Download as CSV",
                            data=csv,
                            file_name='data.csv',
                            mime='text/csv')
-# Logic for downloading pre-existing CSV files
+
+#  Logic for downloading pre-existing CSV files
 elif selected_option == "Download Scraped Data":
     st.subheader("Download Scraped Data")
     
     # Load the CSV files
     try:
-        vehicule_location = pd.read_csv('Data/location_nettoye.csv')
-        vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
-        vente_telephone_nettoye = pd.read_csv('Data/vente_telephone_nettoye.csv')
+        vehicle_location = pd.read_csv('Data/location_nettoye.csv')
+        vehicles_cleaned = pd.read_csv('Data/vehicules_nettoye.csv')
+        motos_cleaned = pd.read_csv('Data/motos_nettoye.csv')
+        phone_sales_cleaned = pd.read_csv('Data/vente_telephone_nettoye.csv')
 
         # Display the data before download options
-        st.write("Data from location:")
-        st.dataframe(vehicule_location)
-        st.write("Data from vehicules:")
-        st.dataframe(vehicules_nettoye)
-        st.write("Data from Telephones:")
-        st.dataframe(vente_telephone_nettoye)
+        st.write("Data from rentals:")
+        st.dataframe(vehicle_location)
+        st.write("Data from vehicles:")
+        st.dataframe(vehicles_cleaned)
+        st.write("Data from Phones:")
+        st.dataframe(phone_sales_cleaned)
 
         # Create download links for each file
         def create_download_link(df, filename):
             csv = df.to_csv(index=False)
-            st.download_button(label=f"Download {filename }",
+            st.download_button(label=f"Download {filename}",
                                data=csv,
                                file_name=filename,
                                mime='text/csv')
 
-        create_download_link(vehicule_location, 'Vehicules rent datas')
-        create_download_link(vehicules_nettoye, 'Vehicules datas')
-        create_download_link(vente_telephone_nettoye, 'Telephone datas')
+        create_download_link(vehicle_location, 'Vehicle rental data')
+        create_download_link(vehicles_cleaned, 'Vehicle data')
+        create_download_link(phone_sales_cleaned, 'Phone data')
     except FileNotFoundError as e:
         st.error(f"Error: {e}. Please ensure the CSV files exist in the correct directory.")
 
 elif selected_option == "Dashboard of the Data":
     st.subheader("Dashboard of the Data")
 
-    # Load the CSV files
-try:
-    vehicule_location = pd.read_csv('Data/location_nettoye.csv')
-    vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
-    vente_telephone_nettoye = pd.read_csv('Data/vente_telephone_nettoye.csv')
+    def load_data():
+        try:
+            vehicle_location = pd.read_csv('Data/location_nettoye.csv')
+            vehicles_cleaned = pd.read_csv('Data/vehicules_nettoye.csv')
+            motos_cleaned = pd.read_csv('Data/motos_nettoye.csv')
+            phone_sales_cleaned = pd.read_csv('Data/vente_telephone_nettoye.csv')
+            return vehicle_location, vehicles_cleaned, motos_cleaned, phone_sales_cleaned
+        except FileNotFoundError as e:
+            st.error(f"File not found: {e}")
+            return None, None, None, None
 
-      # Generate plots
+    # Plotting functions
+    def plot_bar(data, x, y, title, xlabel, ylabel, rotation=0, color='skyblue'):
+        plt.figure(figsize=(8, 4))
+        sns.barplot(data=data, x=x, y=y, color=color)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.xticks(rotation=rotation, ha='right')
+        st.pyplot(plt)
 
-    vehicules_nettoye = pd.read_csv('Data/vehicules_nettoye.csv')
-    vehicules_nettoye['Price'] = pd.to_numeric(vehicules_nettoye['Price'], errors='coerce')
+    def plot_pie(data, title):
+        plt.figure(figsize=(8, 6))
+        data.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
+        plt.title(title)
+        plt.ylabel('')
+        st.pyplot(plt)
 
-   
+    # Main logic for dashboard
+    vehicle_location, vehicles_cleaned, motos_cleaned, phone_sales_cleaned = load_data()
 
-    # 3. Marques les plus récurrentes
-    st.subheader("Répartition des Marques")
-    plt.figure(figsize=(10, 6))
-    brand_counts = vehicules_nettoye['Brand'].value_counts().head(10)  # Top 10 marques
-    brand_counts.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
-    plt.title('Répartition des Marques')
-    plt.ylabel('')
-    st.pyplot(plt)
+    # Vehicles Dashboard
+    if vehicles_cleaned is not None:
+        st.subheader("Vehicles Dashboard")
+        vehicles_cleaned['Price'] = pd.to_numeric(vehicles_cleaned['Price'], errors='coerce')
 
-    st.title("Analyse des Variations de Prix par Marques")
-
-  
-    # Convert Price to numeric for each dataset
-    vehicule_location['Price'] = pd.to_numeric(vehicule_location['Price'], errors='coerce')
-    vente_telephone_nettoye['price'] = pd.to_numeric(vente_telephone_nettoye['price'], errors='coerce')
-
-    # 3. Marques les plus récurrentes for vehicule_location
-    st.subheader("Répartition des Marques - Location")
-    plt.figure(figsize=(10, 6))
-    brand_counts_location = vehicule_location['Brand'].value_counts().head(10)  # Top 10 marques
-    brand_counts_location.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
-    plt.title('Répartition des Marques - Location')
-    plt.ylabel('')
-    st.pyplot(plt)
-
-    # 3. Marques les plus récurrentes for vente_telephone_nettoye
-    st.subheader("Répartition des Marques - Téléphones")
-    plt.figure(figsize=(10, 6))
-    brand_counts_telephone = vente_telephone_nettoye['brand'].value_counts().head(10)  # Top 10 marques
-    brand_counts_telephone.plot(kind='pie', autopct='%1.1f%%', startangle=140, colors=sns.color_palette('pastel'))
-    plt.title('Répartition des Marques - Téléphones')
-    plt.ylabel('')
-    st.pyplot(plt)
-
+        # Brand Distribution
         
-except FileNotFoundError as e:
-     st.error(f"Erreur : {e}. Veuillez vérifier que le fichier existe dans le répertoire spécifié.")
+        brand_counts = vehicles_cleaned['Brand'].value_counts().head(10)
+        if not brand_counts.empty:
+            plot_pie(brand_counts, 'Brand Distribution - Vehicles')
+
+        # Price Analysis by Brand
+       
+        if 'Brand' in vehicles_cleaned.columns and 'Price' in vehicles_cleaned.columns:
+            avg_prices = vehicles_cleaned.groupby('Brand')['Price'].mean().sort_values(ascending=False).head(10).reset_index()
+            avg_prices.columns = ['Brand', 'Average Price']
+            plot_bar(avg_prices, 'Brand', 'Average Price', 'Average Price by Brand', 'Brand', 'Price (FCFA)', rotation=45)
+
+    # Motorcycles Dashboard
+    if motos_cleaned is not None:
+        st.subheader("Motorcycles Dashboard")
+        motos_cleaned['Price'] = pd.to_numeric(motos_cleaned['Price'], errors='coerce')
+
+        # Brand Distribution
+       
+        brand_counts_motos = motos_cleaned['Brand'].value_counts().head(10)
+        if not brand_counts_motos.empty:
+            plot_pie(brand_counts_motos, 'Brand Distribution - Motorcycles')
+
+        # Price Analysis by Brand
+       
+        if 'Brand' in motos_cleaned.columns and 'Price' in motos_cleaned.columns:
+            avg_prices_motos = motos_cleaned.groupby('Brand')['Price'].mean().sort_values(ascending=False).head(10).reset_index()
+            avg_prices_motos.columns = ['Brand', 'Average Price']
+            plot_bar(avg_prices_motos, 'Brand', 'Average Price', 'Average Price by Brand - Motorcycles', 'Brand', 'Price (FCFA)', rotation=45)
+
+    # Location Dashboard
+    if vehicle_location is not None:
+        st.subheader("Rentals Dashboard")
+        # Brand Distribution
+        st.subheader("")
+        brand_counts_location = vehicle_location['Brand'].value_counts().head(10)
+        if not brand_counts_location.empty:
+            plot_pie(brand_counts_location, 'Brand Distribution - Rentals')
+
+    # Phones Dashboard
+    if phone_sales_cleaned is not None:
+        st.subheader("Phones Dashboard")
+        # Brand Distribution
+        
+        if 'brand' in phone_sales_cleaned.columns:
+            brand_counts_phone = phone_sales_cleaned['brand'].value_counts().head(10)
+            plot_pie(brand_counts_phone, 'Brand Distribution - Phones')
+
+        # Price Analysis by Brand
+       
+        if 'brand' in phone_sales_cleaned.columns and 'price' in phone_sales_cleaned.columns:
+            phone_sales_cleaned['price'] = pd.to_numeric(phone_sales_cleaned['price'], errors='coerce')
+            avg_prices_phones = phone_sales_cleaned.groupby('brand')['price'].mean().sort_values(ascending=False).head(10).reset_index()
+            avg_prices_phones.columns = ['Brand', 'Average Price']
+            plot_bar(avg_prices_phones, 'Brand', 'Average Price', 'Average Price by Brand - Phones', 'Brand', 'Price (FCFA)', rotation=45)
