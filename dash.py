@@ -8,6 +8,49 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+def display_thank_you_message():
+    with st.spinner("Processing..."):
+        time.sleep(1)  # Simulate some processing time
+    
+    # Custom styled thank you message
+    st.markdown(
+        """
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Balancing&display=swap');
+            .container {
+                background-color: #f0f0f0; /* Light gray background */
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            .thank-you {
+                color: black; /* Change text color to black */
+                font-weight: bold;
+                font-size: 30px;
+                font-family: 'Balancing', serif;
+            }
+            .info {
+                color: black; /* Change text color to black */
+                font-weight: bold;
+                font-size: 24px;
+                font-family: 'Balancing', sans-serif;
+            }
+        </style>
+        <div class="container">
+            <div class="thank-you">Thank you for your interaction! 🎉</div>
+            <div class="info">Thanks from Farouk, Abass, and Aly for using our scraping app!</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Optional: Display balloons animation
+    st.balloons()
+    
+    # Optional: Display balloons animation
+    st.balloons()
+
+
 # Function to create download links
 def create_download_link(df, filename_csv, filename_excel):
     # CSV download
@@ -89,10 +132,10 @@ if base64_image:
     )
 
 # Scraping function
-def scrape_multiple_pages(base_url, last_page_index):
+def scrape_multiple_pages(base_url, selected_pages):
     all_data = []
     start_time = time.time()  # Start timing
-    for page_index in range(1, last_page_index + 1):
+    for page_index in selected_pages:  # Iterate over the selected pages
         st.write(f"Scraping page {page_index}...")  # Display current page being scraped
         url = f'{base_url}&nb={page_index}'
         page = get(url)
@@ -167,10 +210,22 @@ elif selected_option == "Scrape Data Using BeautifulSoup":
     selected_site = st.sidebar.selectbox("Choose a site to scrape:", list(example_sites.keys()))
     base_url = example_sites[selected_site]
     last_page_index = last_page_indices[selected_site]
-    number_of_pages = st.sidebar.selectbox("Number of pages to scrape", options=range(1, last_page_index + 1), index=4)
+
+    # Allow user to select multiple pages to scrape
+    page_options = list(range(1, last_page_index + 1))
+    selected_pages = st.sidebar.multiselect("Select pages to scrape:", page_options)
+
+    # Input for starting page
+    starting_page = st.sidebar.number_input("Starting page (default is 1):", min_value=1, max_value=last_page_index, value=1)
 
     if st.button("Start scraping"):
-        result = scrape_multiple_pages(base_url, number_of_pages)
+        # Adjust the pages to scrape based on user input
+        if selected_pages:
+            result = scrape_multiple_pages(base_url, selected_pages)
+        else:
+            st.warning("Please select at least one page to scrape.")
+            result = pd.DataFrame()  # Initialize an empty DataFrame if no pages are selected
+
         st.subheader("Scraped Data")
         st.write(result)
 
@@ -313,3 +368,7 @@ elif selected_option == "Dashboard of the Data":
             avg_prices_phones = phone_sales_cleaned.groupby('brand')['price'].mean().sort_values(ascending=False).head(10).reset_index()
             avg_prices_phones.columns = ['Brand', 'Average Price']
             plot_bar(avg_prices_phones, 'Brand', 'Average Price', 'Average Price by Brand - Phones', 'Brand', 'Price (FCFA)', rotation=45)
+
+# Sidebar button to trigger the thank you message
+if st.sidebar.button("Click Me "):
+    display_thank_you_message()
